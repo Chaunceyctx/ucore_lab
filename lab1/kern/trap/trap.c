@@ -178,30 +178,29 @@ trap_dispatch(struct trapframe *tf) {
         break;
     //LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
     case T_SWITCH_TOU:
-    	if (tf->tf_cs != USER_CS) {		//内核态切到虚拟的用户态，记住trapframe包含了esp和ss，iret指令时才真正的切换栈
+    	if (tf->tf_cs != USER_CS) {		//内核态切到虚拟的用户态，没必要保存内核栈的esp和ss，他们都在进程tss中，iret指令时才真正的切换栈
             switchk2u = *tf;
             switchk2u.tf_cs = USER_CS;
             switchk2u.tf_ds = switchk2u.tf_es = switchk2u.tf_ss = USER_DS;
-            switchk2u.tf_esp = (uint32_t)tf + sizeof(struct trapframe) /*- 8 多余了*/;//实际上lab1_switch_to_user是在kern_init中切换，也就是说此处还是是内核态返回到内核态（虚拟的用户态，trapframe用来保存这虚拟的用户态信息），所以asm中sub 0x08实际上是内核态的esp和ss占了这么多的空间，但是8字节中什么也没有，不存在栈的切换，也就是说还是使用内核栈，所以要切到切到老数据的部分，只要(uint32_t)tf + sizeof(struct trapframe)
+            switchk2u.tf_esp = (uint32_t)tf + sizeof(struct trapframe) - 8;//实际上lab1_switch_to_user是在kern_init中切换，也就是说此处还是是内核态返回到内核态（虚拟的用户态，trapframe用来保存这虚拟的用户态信息），sizeof(struct trapframe)有76字节，但是esp和ss没保存，所以只要偏移sizeof(struct trapframe)-8即可
 		
             // set eflags, make sure ucore can use io under user mode.
             // if CPL > IOPL, then cpu will generate a general protection.
             switchk2u.tf_eflags |= FL_IOPL_MASK;/* Eflags register 对I/O操作限制那一位*/
-	    //此时switch保存了内核态的信息
             // set temporary stack
             // then iret will jump to the right stack
-            *((uint32_t *)tf - 1) = (uint32_t)&switchk2u;//由于之前为了传递tf参数，多压入了esp，然后等trap_dispatch退出时，esp内容还在栈顶，所以tf提前4字节吧esp覆盖，然后iret时就可以正确弹出，之后回到正确的esp这里把esp指向的栈内容修改掉，所以print_cur_state会打出变化的内容
+            *((uint32_t *)tf - 1) = (uint32_t)&switchk2u;//由于之前为了传递tf参数，多压入了esp，然后等trap_dispatch退出时，esp内容还在栈顶，所以tf提前4字节把esp覆盖，然后iret时就可以正确弹出到对应的寄存器，所以print_cur_state会打出变化的内容
             //print_trapframe(tf);
         }
     	break;
     case T_SWITCH_TOK:
         //panic("T_SWITCH_** ??\n");
-        if (tf->tf_cs != KERNEL_CS) {		//虚拟用户态（内核态）到内核态
+        if (tf->tf_cs != KERNEL_CS) {		//虚拟用户态（内核态）到内核态，esp和ss需要保存
             tf->tf_cs = KERNEL_CS;
             tf->tf_ds = tf->tf_es = KERNEL_DS;
             tf->tf_eflags &= ~FL_IOPL_MASK;
-            switchu2k = (struct trapframe *)(tf->tf_esp - (sizeof(struct trapframe) - 8));	//esp和ss都会自动保存，然后看特权级判断是否要切换栈
-            memmove(switchu2k, tf, sizeof(struct trapframe) - 8);//
+            switchu2k = (struct trapframe *)(tf->tf_esp - (sizeof(struct trapframe) - 8));	//在tf_esp以下开辟一块76字节区域存放trapframe
+            memmove(switchu2k, tf, sizeof(struct trapframe) - 8);//由于多压入了esp和ss栈存放不下，所以在另一片内存需要将其拷贝到开辟好的76字节
             *((uint32_t *)tf - 1) = (uint32_t)switchu2k;
             //print_trapframe(tf);
         }

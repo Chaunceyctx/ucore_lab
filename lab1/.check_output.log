@@ -6,9 +6,9 @@ Special kernel symbols:
   edata  0x0010ea16 (phys)
   end    0x0010fd80 (phys)
 Kernel executable memory footprint: 64KB
-ebp:0x00007b38 eip:0x00100a37 args:0x000100940x00007b680x000000000x00000000
+ebp:0x00007b38 eip:0x00100a34 args:0x000100940x00007b680x000000000x00000000
     kern/debug/kdebug.c:306: print_stackframe+21
-ebp:0x00007b48 eip:0x00100084 args:0x000000000x000000000x001002000x00007b88
+ebp:0x00007b48 eip:0x00100084 args:0x000000000x000000000x001001fd0x00007b88
     kern/init/init.c:48: grade_backtrace2+19
 ebp:0x00007b68 eip:0x001000a6 args:0x000000000xffff00000x001036cc0x00007ba8
     kern/init/init.c:53: grade_backtrace1+27
@@ -53,11 +53,11 @@ ebp:0xf000ff53 eip:0x00000000 args:0x000000000x000000000x000000000x00000000
 0:  es = 10
 0:  ss = 10
 +++ switch to  user  mode +++
-1: @ring 0
-1:  cs = 8
-1:  ds = 10
-1:  es = 10
-1:  ss = 10
+1: @ring 3
+1:  cs = 1b
+1:  ds = 23
+1:  es = 23
+1:  ss = 23
 +++ switch to kernel mode +++
 2: @ring 0
 2:  cs = 8
